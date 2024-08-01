@@ -227,7 +227,7 @@
 	<Loading />
 {:else}
 	<ul class="mb-4 w-full">
-		<div class="sticky top-16 bg-neutral-950 pb-4 mb-2">
+		<div class="sticky top-16 bg-neutral-950 pb-4 mb-2 border-b border-neutral-800">
 			<h2 class="font-semibold mb-5 sticky top-16 bg-neutral-950">
 				Showing {posts.length} of {totalCount} results
 			</h2>

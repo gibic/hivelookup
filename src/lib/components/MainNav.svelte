@@ -1,5 +1,3 @@
 <nav class="flex gap-10">
-    <a href="/">About</a>
-    <a href="/">Curation Guilds</a>
-    <a href="/">Fork this repo</a>
+    <a href="https://github.com/gibic/hivelookup" target="_blank">Fork this repo</a>
 </nav>

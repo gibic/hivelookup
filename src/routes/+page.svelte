@@ -58,8 +58,11 @@
 		};
 	}
 
-	async function fetchData(params: FetchDataOptions) {
+	async function fetchData(params: FetchDataOptions, isPagination = false) {
 		loading = true;
+		if (!isPagination) {
+			currentPage = 1;
+		}
 		try {
 			const res = await fetch('/api', {
 				method: 'POST',
@@ -135,7 +138,7 @@
 
 	function changePage(increment: number) {
 		currentPage = Math.max(1, currentPage + increment);
-		fetchData(getFetchDataParams());
+		fetchData(getFetchDataParams(), true);
 	}
 
 	function nextPage() {

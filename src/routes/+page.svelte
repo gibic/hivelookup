@@ -4,6 +4,7 @@
     import { timeAgo } from '$lib/utils/timeFormat';
     import type { Post, Metadata, FetchDataOptions } from '$lib/types';
     import Loading from '$lib/components/Loading.svelte';
+	import HiveIcon from '$lib/assets/hive-blockchain-hive-logo.svg';
     import {
         bodyLen,
         initializeSettings,
@@ -146,6 +147,19 @@
     function previousPage() {
         changePage(-1);
     }
+
+	function computeReward(post: Post) {
+        const totalPayout = post.total_payout_value;
+        const pendingPayout = post.pending_payout_value;
+
+        if (totalPayout === 0 && pendingPayout === 0) {
+            return '0';
+        } else if (totalPayout !== 0) {
+            return (totalPayout * 2).toFixed(2);
+        } else {
+            return pendingPayout.toFixed(2);
+        }
+    }
 </script>
 
 {#if loading}
@@ -156,7 +170,7 @@
             <h2 class="font-semibold mb-5 sticky top-16 bg-neutral-950">
                 Showing {posts.length} of {totalCount} results
             </h2>
-            <div class="flex justify-between">
+            <div class="flex justify-center gap-6 text-sm">
                 <button on:click={previousPage} disabled={currentPage === 1}>Previous</button>
                 <span>Page {currentPage}</span>
                 <button on:click={nextPage} disabled={currentPage * pageSize >= totalCount}>Next</button>
@@ -180,10 +194,8 @@
                 </div>
                 <div class="w-3/4">
                     <a href="{uiBaseUrl}{post.url}" target="_blank" class="font-semibold">{post.title}</a>
-                    <br />
-                    <span class="text-xs">{post.pending_payout_value} Hive Rewards</span>
                 </div>
-                <div class="mt-2">
+                <div class="mt-2 flex justify-between">
                     {#if getTags(post).length}
                         <ul class="flex flex-wrap mt-2">
                             {#each getTags(post) as tag}
@@ -191,6 +203,7 @@
                             {/each}
                         </ul>
                     {/if}
+					<div class="text-xs flex gap-2 items-center ml-auto justify-end">{computeReward(post)} <img src={HiveIcon} width="18" alt="Hive icon"></div>
                 </div>
             </li>
         {/each}

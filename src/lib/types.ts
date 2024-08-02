@@ -30,6 +30,7 @@ export interface Post {
     metadata?: Metadata;
     displaycategory: string;
     body_length: number;
+    total_payout_value: number;
 }
 
 export interface Data {

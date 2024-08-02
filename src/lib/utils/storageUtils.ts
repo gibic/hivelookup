@@ -23,8 +23,8 @@ export const selectedLanguage = writable<string>('en');
 export const selectedUI = writable<string>('https://peakd.com');
 export const searchTerm = writable<string>('');
 export const bodyLen = writable<number>(0);
-export const maxPayout = writable<number>(0);
-export const minPayout = writable<number>(0);
+export const maxPayout = writable<number>(undefined);
+export const minPayout = writable<number>(undefined);
 export const tagsToExclude = writable<string[]>([]); 
 export const tagsToInclude = writable<string[]>([]); 
 export const showPayoutWindowOnly = writable<boolean>(true);
@@ -92,8 +92,8 @@ export function resetSettings() {
         selectedLanguage: 'en',
         selectedUI: 'https://peakd.com',
         bodyLen: 0,
-        maxPayout: 0,
-        minPayout: 0,
+        maxPayout: undefined,
+        minPayout: undefined,
         tagsToExclude: [],
         tagsToInclude: [],
         showPayoutWindowOnly: true,

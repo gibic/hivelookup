@@ -58,7 +58,7 @@
 			searchTerm: search,
 			bodyLen: minBodyLength,
 			minPayout: minPayoutValue,
-			maxPayout: minPayoutValue,
+			maxPayout: maxPayoutValue,
 			tagsToExclude: tagsToExcludeArr,
 			tags: tagsToIncludeArr,
 			author: get(authorsToInclude).join(', '),

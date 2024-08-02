@@ -96,9 +96,9 @@ export const POST: RequestHandler = async ({ request }) => {
 
                 let tagsCondition = '';
                 if (tags.length > 0) {
-                    const tagPlaceholders = tags.map((_, i) => `@tag${i}`).join(', ');
+                    const tagPlaceholders = tags.map((_, i) => `@includeTag${i}`).join(', ');
                     tags.forEach((tag, i) => {
-                        sqlRequest.input(`tag${i}`, sql.NVarChar, tag);
+                        sqlRequest.input(`includeTag${i}`, sql.NVarChar, tag);
                     });
                     tagsCondition = `AND EXISTS (
                         SELECT 1
@@ -117,21 +117,19 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		sqlRequest.input('bodyLength', sql.Int, minBodyLength);
 
-		const placeholders = (tagsToExclude as string[])
-			.map((tag: string, i: number) => `@tag${i}`)
-			.join(', ');
+		const excludeTagPlaceholders = tagsToExclude.map((_, i) => `@excludeTag${i}`).join(', ');
 
 		const excludeTagsCondition =
 			tagsToExclude.length > 0
 				? `AND NOT EXISTS (
             SELECT 1 
             FROM OPENJSON(c.json_metadata, '$."tags"') 
-            WHERE value IN (${placeholders})
+            WHERE value IN (${excludeTagPlaceholders})
         )`
 				: '';
 
-		(tagsToExclude as string[]).forEach((tag: string, i: number) => {
-			sqlRequest.input(`tag${i}`, sql.NVarChar, tag);
+		tagsToExclude.forEach((tag, i) => {
+			sqlRequest.input(`excludeTag${i}`, sql.NVarChar, tag);
 		});
 
 		const offset = (page - 1) * pageSize;

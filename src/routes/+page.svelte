@@ -1,211 +1,226 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
-    import { parseMetadata } from '$lib/utils/parseMeta';
-    import { timeAgo } from '$lib/utils/timeFormat';
-    import type { Post, Metadata, FetchDataOptions } from '$lib/types';
-    import Loading from '$lib/components/Loading.svelte';
+	import { onMount } from 'svelte';
+	import { parseMetadata } from '$lib/utils/parseMeta';
+	import { timeAgo } from '$lib/utils/timeFormat';
+	import type { Post, Metadata, FetchDataOptions } from '$lib/types';
+	import Loading from '$lib/components/Loading.svelte';
 	import HiveIcon from '$lib/assets/hive-blockchain-hive-logo.svg';
-    import {
-        bodyLen,
-        initializeSettings,
-        searchTerm,
-        selectedLanguage,
-        selectedUI,
-        minPayout,
-        maxPayout,
-        tagsToExclude,
-        tagsToInclude,
-        authorsToInclude,
-        authorsToExclude,
-        excludeUpvotedBy,
-        showPayoutWindowOnly,
-        saveSettings,
-        getSettings,
-
+	import {
+		bodyLen,
+		initializeSettings,
+		searchTerm,
+		selectedLanguage,
+		selectedUI,
+		minPayout,
+		maxPayout,
+		tagsToExclude,
+		tagsToInclude,
+		authorsToInclude,
+		authorsToExclude,
+		excludeUpvotedBy,
+		showPayoutWindowOnly,
+		saveSettings,
+		getSettings,
 		searchTriggered
+	} from '$lib/utils/storageUtils';
+	import { get } from 'svelte/store';
 
-    } from '$lib/utils/storageUtils';
-    import { get } from 'svelte/store';
+	interface APIResponse {
+		totalCount: number;
+		posts: Post[];
+	}
 
-    interface APIResponse {
-        totalCount: number;
-        posts: Post[];
-    }
+	let totalCount = 0;
+	let posts: (Post & { metadata: Metadata })[] = [];
+	let loading = true;
+	let initialLoadDone = false;
+	let uiBaseUrl = '';
+	let currentPage = 1;
+	const pageSize = 10;
 
-    let totalCount = 0;
-    let posts: (Post & { metadata: Metadata })[] = [];
-    let loading = true;
-    let initialLoadDone = false;
-    let uiBaseUrl = '';
-    let currentPage = 1; 
-    const pageSize = 10;
+	$: uiBaseUrl = $selectedUI;
 
-    $: uiBaseUrl = $selectedUI;
-
-    function getFetchDataParams(): FetchDataOptions {
-        return {
-            language: get(selectedLanguage),
-            searchTerm: get(searchTerm),
-            bodyLen: get(bodyLen),
-            minPayout: get(minPayout),
-            maxPayout: get(maxPayout),
-            tagsToExclude: get(tagsToExclude),
-            tags: get(tagsToInclude),
-            author: get(authorsToInclude).join(', '),
-            authorExclude: get(authorsToExclude).join(', '),
-            excludeUpvotedBy: get(excludeUpvotedBy),
-            page: currentPage,
-            pageSize,
+	function getFetchDataParams(): FetchDataOptions {
+		return {
+			language: get(selectedLanguage),
+			searchTerm: get(searchTerm),
+			bodyLen: get(bodyLen),
+			minPayout: get(minPayout),
+			maxPayout: get(maxPayout),
+			tagsToExclude: get(tagsToExclude),
+			tags: get(tagsToInclude),
+			author: get(authorsToInclude).join(', '),
+			authorExclude: get(authorsToExclude).join(', '),
+			excludeUpvotedBy: get(excludeUpvotedBy),
+			page: currentPage,
+			pageSize,
 			showPayoutWindowOnly: get(showPayoutWindowOnly)
-        };
-    }
+		};
+	}
 
-    async function fetchData(params: FetchDataOptions) {
-        loading = true;
-        try {
-            const res = await fetch('/api', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(params),
-            });
+	async function fetchData(params: FetchDataOptions) {
+		loading = true;
+		try {
+			const res = await fetch('/api', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(params)
+			});
 
-            if (res.ok) {
-                const responseData: APIResponse = await res.json();
-                if (Array.isArray(responseData.posts)) {
-                    processPosts(responseData.posts);
-                    totalCount = responseData.totalCount;
-                } else {
-                    console.error('Unexpected response structure:', responseData);
-                    posts = [];
-                    totalCount = 0;
-                }
-            } else {
-                console.error('Failed to fetch data with status:', res.status);
-                posts = [];
-                totalCount = 0;
-            }
-        } catch (error) {
-            console.error('Error fetching data:', error);
-            posts = [];
-            totalCount = 0;
-        } finally {
-            setTimeout(() => (loading = false), 1000);
-        }
-    }
+			if (res.ok) {
+				const responseData: APIResponse = await res.json();
+				if (Array.isArray(responseData.posts)) {
+					processPosts(responseData.posts);
+					totalCount = responseData.totalCount;
+				} else {
+					console.error('Unexpected response structure:', responseData);
+					posts = [];
+					totalCount = 0;
+				}
+			} else {
+				console.error('Failed to fetch data with status:', res.status);
+				posts = [];
+				totalCount = 0;
+			}
+		} catch (error) {
+			console.error('Error fetching data:', error);
+			posts = [];
+			totalCount = 0;
+		} finally {
+			setTimeout(() => (loading = false), 1000);
+		}
+	}
 
-    function processPosts(responseData: Post[]) {
-        posts = responseData.map((post) => ({
-            ...post,
-            metadata: parseMetadata(post.json_metadata),
-        }));
-    }
+	function processPosts(responseData: Post[]) {
+		posts = responseData.map((post) => ({
+			...post,
+			metadata: parseMetadata(post.json_metadata)
+		}));
+	}
 
-    onMount(() => {
-        initializeSettings();
-        const initialSettings = getSettings();
-        saveSettings(initialSettings);
+	onMount(() => {
+		initializeSettings();
+		const initialSettings = getSettings();
+		saveSettings(initialSettings);
 
-        if (!initialLoadDone) {
-            fetchData(getFetchDataParams()).then(() => {
-                initialLoadDone = true;
-            });
-        }
+		if (!initialLoadDone) {
+			fetchData(getFetchDataParams()).then(() => {
+				initialLoadDone = true;
+			});
+		}
 
-        selectedLanguage.subscribe(async (newLanguage) => {
-            if (initialLoadDone) {
-                const params = { ...getFetchDataParams(), language: newLanguage };
-                await fetchData(params);
-            }
-        });
+		selectedLanguage.subscribe(async (newLanguage) => {
+			if (initialLoadDone) {
+				const params = { ...getFetchDataParams(), language: newLanguage };
+				await fetchData(params);
+			}
+		});
 
 		searchTriggered.subscribe(async (triggered) => {
-            if (triggered && initialLoadDone) {
-                await fetchData(getFetchDataParams());
-                searchTriggered.set(false);
-            }
-        });
-    });
+			if (triggered && initialLoadDone) {
+				await fetchData(getFetchDataParams());
+				searchTriggered.set(false);
+			}
+		});
+	});
 
-    function getTags(post: Post) {
-        if (!post.displaycategory.startsWith('#')) {
-            return post.metadata?.tags?.slice(1) ?? [];
-        }
-        return post.metadata?.tags ?? [];
-    }
+	function getTags(post: Post) {
+		if (!post.displaycategory.startsWith('#')) {
+			return post.metadata?.tags?.slice(1) ?? [];
+		}
+		return post.metadata?.tags ?? [];
+	}
 
-    function changePage(increment: number) {
-        currentPage = Math.max(1, currentPage + increment);
-        fetchData(getFetchDataParams());
-    }
+	function changePage(increment: number) {
+		currentPage = Math.max(1, currentPage + increment);
+		fetchData(getFetchDataParams());
+	}
 
-    function nextPage() {
-        changePage(1);
-    }
+	function nextPage() {
+		changePage(1);
+	}
 
-    function previousPage() {
-        changePage(-1);
-    }
+	function previousPage() {
+		changePage(-1);
+	}
 
 	function computeReward(post: Post) {
-        const totalPayout = post.total_payout_value;
-        const pendingPayout = post.pending_payout_value;
+		const totalPayout = post.total_payout_value;
+		const pendingPayout = post.pending_payout_value;
 
-        if (totalPayout === 0 && pendingPayout === 0) {
-            return '0';
-        } else if (totalPayout !== 0) {
-            return (totalPayout * 2).toFixed(2);
-        } else {
-            return pendingPayout.toFixed(2);
-        }
-    }
+		if (totalPayout === 0 && pendingPayout === 0) {
+			return '0';
+		} else if (totalPayout !== 0) {
+			return (totalPayout * 2).toFixed(2);
+		} else {
+			return pendingPayout.toFixed(2);
+		}
+	}
 </script>
 
 {#if loading}
-    <Loading />
+	<Loading />
 {:else}
-    <ul class="mb-4 w-full">
-        <div class="sticky top-16 bg-neutral-950 pb-4 mb-2 border-b border-neutral-800">
-            <h2 class="font-semibold mb-5 sticky top-16 bg-neutral-950">
-                Showing {posts.length} of {totalCount} results
-            </h2>
-            <div class="flex justify-center gap-6 text-sm">
-                <button on:click={previousPage} disabled={currentPage === 1}>Previous</button>
-                <span>Page {currentPage}</span>
-                <button on:click={nextPage} disabled={currentPage * pageSize >= totalCount}>Next</button>
-            </div>
-        </div>
+	<ul class="mb-4 w-full">
+		<div class="sticky top-16 bg-neutral-950 pb-4 mb-2 border-b border-neutral-800">
+			<h2 class="font-semibold mb-5 sticky top-16 bg-neutral-950">
+				Showing {posts.length} of {totalCount} results
+			</h2>
+			<div class="flex justify-center gap-6 text-sm items-center">
+				<button
+					on:click={previousPage}
+					disabled={currentPage === 1}
+					class="py-1 px-2 w-32 {currentPage === 1 ? 'bg-gray-800 text-gray-600' : 'bg-gray-600'}"
+					>Previous</button
+				>
+				<span>Page {currentPage}</span>
+				<button
+					on:click={nextPage}
+					disabled={currentPage * pageSize >= totalCount}
+					class="bg-gray-600 py-1 px-2 w-32 {currentPage * pageSize >= totalCount
+						? 'bg-gray-800 text-gray-600'
+						: 'bg-gray-600'}">Next</button
+				>
+			</div>
+		</div>
 
-        {#each posts as post}
-            <li class="border-b border-neutral-900 py-2 hover:bg-neutral-900 pr-4">
-                <div class="flex justify-between mb-2">
-                    <div class="text-sm">
-                        <a href="{uiBaseUrl}/@{post.author}" target="_blank">{post.author} ({post.reputation})</a>
-                        <br />
-                        <span class="text-xs">Body length: {post.body_length} characters</span>
-                    </div>
-                    <div class="flex flex-col items-end">
-                        <span class="text-xs">{timeAgo(post.created)}</span>
-                        {#if !post.displaycategory.startsWith('#')}
-                            <span class="bg-teal-700 rounded-md my-2 py-1 px-2 text-[11px]">C / {post.displaycategory}</span>
-                        {/if}
-                    </div>
-                </div>
-                <div class="w-3/4">
-                    <a href="{uiBaseUrl}{post.url}" target="_blank" class="font-semibold">{post.title}</a>
-                </div>
-                <div class="mt-2 flex justify-between">
-                    {#if getTags(post).length}
-                        <ul class="flex flex-wrap mt-2">
-                            {#each getTags(post) as tag}
-                                <li class="bg-gray-700 border-gray-600 p-1 mr-2 mb-1 text-xs rounded-md">#{tag}</li>
-                            {/each}
-                        </ul>
-                    {/if}
-					<div class="text-xs flex gap-2 items-center ml-auto justify-end">{computeReward(post)} <img src={HiveIcon} width="18" alt="Hive icon"></div>
-                </div>
-            </li>
-        {/each}
-    </ul>
+		{#each posts as post}
+			<li class="border-b border-neutral-900 py-2 hover:bg-neutral-900 pr-4">
+				<div class="flex justify-between mb-2">
+					<div class="text-sm">
+						<a href="{uiBaseUrl}/@{post.author}" target="_blank"
+							>{post.author} ({post.reputation})</a
+						>
+						<br />
+						<span class="text-xs">Body length: {post.body_length} characters</span>
+					</div>
+					<div class="flex flex-col items-end">
+						<span class="text-xs">{timeAgo(post.created)}</span>
+						{#if !post.displaycategory.startsWith('#')}
+							<span class="bg-teal-700 rounded-md my-2 py-1 px-2 text-[11px]"
+								>C / {post.displaycategory}</span
+							>
+						{/if}
+					</div>
+				</div>
+				<div class="w-3/4">
+					<a href="{uiBaseUrl}{post.url}" target="_blank" class="font-semibold">{post.title}</a>
+				</div>
+				<div class="mt-2 flex justify-between">
+					{#if getTags(post).length}
+						<ul class="flex flex-wrap mt-2">
+							{#each getTags(post) as tag}
+								<li class="bg-gray-700 border-gray-600 p-1 mr-2 mb-1 text-xs rounded-md">#{tag}</li>
+							{/each}
+						</ul>
+					{/if}
+					<div class="text-xs flex gap-2 items-center ml-auto justify-end">
+						{computeReward(post)} <img src={HiveIcon} width="18" alt="Hive icon" />
+					</div>
+				</div>
+			</li>
+		{/each}
+	</ul>
 {/if}

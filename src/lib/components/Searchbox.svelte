@@ -1,8 +1,9 @@
 <script lang="ts">
-    import { saveSettings, searchTerm, showPayoutWindowOnly } from '$lib/utils/storageUtils';
+    import { saveSettings, searchTerm, searchTriggered, showPayoutWindowOnly } from '$lib/utils/storageUtils';
 
     let inputValue = '';
     let checked: boolean;
+
 
     // Initialize checked state from the store
     showPayoutWindowOnly.subscribe(value => {
@@ -11,6 +12,7 @@
 
     function handleSearch() {
         searchTerm.set(inputValue);
+        searchTriggered.set(true);
     }
 
     function handleCheckboxChange() {

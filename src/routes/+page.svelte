@@ -19,7 +19,10 @@
         excludeUpvotedBy,
         showPayoutWindowOnly,
         saveSettings,
-        getSettings
+        getSettings,
+
+		searchTriggered
+
     } from '$lib/utils/storageUtils';
     import { get } from 'svelte/store';
 
@@ -113,6 +116,13 @@
             if (initialLoadDone) {
                 const params = { ...getFetchDataParams(), language: newLanguage };
                 await fetchData(params);
+            }
+        });
+
+		searchTriggered.subscribe(async (triggered) => {
+            if (triggered && initialLoadDone) {
+                await fetchData(getFetchDataParams());
+                searchTriggered.set(false);
             }
         });
     });

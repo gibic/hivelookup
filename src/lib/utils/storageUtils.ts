@@ -31,6 +31,7 @@ export const showPayoutWindowOnly = writable<boolean>(true);
 export const authorsToInclude = writable<string[]>([]);
 export const authorsToExclude = writable<string[]>([]);
 export const excludeUpvotedBy = writable<string[]>([]);
+export const searchTriggered = writable<boolean>(false);
 
 const storeMap: {
 	[K in keyof AppSettings]:

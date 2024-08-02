@@ -32,7 +32,7 @@ export const POST: RequestHandler = async ({ request }) => {
         const tagsToExclude = body.tagsToExclude ?? [];
         const minPayout = body.minPayout ?? 0;
         const maxPayout = body.maxPayout ?? 0;
-        const showPayoutWindowOnly = body.showPayoutWindowOnly ?? false;
+        const showPayoutWindowOnly = body.showPayoutWindowOnly ?? true;
         const author = body.author ?? '';
         const authorExclude = body.authorExclude ?? '';
         const tags = body.tags ?? [];
@@ -88,7 +88,7 @@ export const POST: RequestHandler = async ({ request }) => {
         });
 
 		const bodyLengthCondition = minBodyLength > 0 ? `AND LEN(c.body) >= @bodyLength` : '';
-        const payoutWindowCondition = !showPayoutWindowOnly && searchTerm && searchTerm.length >= 5 ? '' : `AND c.created > DATEADD(day, -7, GETUTCDATE())`;
+        const payoutWindowCondition = showPayoutWindowOnly ? `AND c.created > DATEADD(day, -7, GETUTCDATE())` : '';
         const payoutCondition =
             maxPayout > 0
                 ? `AND TRY_CONVERT(DECIMAL, c.pending_payout_value, 1) BETWEEN @minPayout AND @maxPayout`
@@ -163,8 +163,8 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const totalCountResult = await sqlRequest.query(totalCountQuery);
 		const totalCount = totalCountResult.recordset[0].totalCount;
-		//Main Query
-		const query = ` 
+
+        const query = ` 
     SELECT 
         c.title,
         FLOOR(a.reputation_ui) AS reputation,

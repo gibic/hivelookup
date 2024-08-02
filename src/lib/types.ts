@@ -47,6 +47,7 @@ export interface FetchDataOptions {
     author?: string;    
     authorExclude?: string;   
     excludeUpvotedBy?: string[];
+    showPayoutWindowOnly: boolean;
     page: number;
     pageSize: number;
 }

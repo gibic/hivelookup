@@ -224,6 +224,7 @@ export const POST: RequestHandler = async ({ request }) => {
         c.body_length,
         c.author_rewards,
         c.total_payout_value,
+        c.body,
         CASE 
             WHEN cm.title IS NOT NULL THEN cm.title
             ELSE '#' + c.category

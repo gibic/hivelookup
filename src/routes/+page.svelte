@@ -106,7 +106,8 @@
 	function processPosts(responseData: Post[]) {
 		posts = responseData.map((post) => ({
 			...post,
-			metadata: parseMetadata(post.json_metadata)
+			metadata: parseMetadata(post.json_metadata),
+			wordCount: countWords(post.body)
 		}));
 	}
 
@@ -178,6 +179,18 @@
             return 0;
         }
     }
+
+	function stripHTMLAndMarkdown(content: string): string {
+		const tempDiv = document.createElement('div');
+		tempDiv.innerHTML = content;
+		const textContent = tempDiv.textContent || tempDiv.innerText || '';
+		const strippedContent = textContent.replace(/(\*|_|\~|\`|\#|\>|\!|\[|\])/g, '');
+		return strippedContent;
+	}
+	function countWords(content: string): number {
+		const strippedContent = stripHTMLAndMarkdown(content);
+		return strippedContent.trim().split(/\s+/).length;
+	}
 </script>
 
 {#if loading}
@@ -217,7 +230,7 @@
 						<div class="flex gap-4 my-2">
 							<div class="flex gap-2">
 								<img src={WordIcon} width="14" alt="words count">
-								<span>{post.body_length}</span>
+								<span>{post.wordCount}</span>
 							</div>
 							<div class="flex gap-2"> 
 								<img src={ImageIcon} width="14" alt="images count">

@@ -31,6 +31,8 @@ export interface Post {
     displaycategory: string;
     body_length: number;
     total_payout_value: number;
+    body: string;
+    wordCount: number;
 }
 
 export interface Data {

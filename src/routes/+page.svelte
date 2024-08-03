@@ -5,6 +5,9 @@
 	import type { Post, Metadata, FetchDataOptions } from '$lib/types';
 	import Loading from '$lib/components/Loading.svelte';
 	import HiveIcon from '$lib/assets/hive-blockchain-hive-logo.svg';
+	import ImageIcon from '$lib/assets/image-solid.svg';
+	import WordIcon from '$lib/assets/file-word-solid.svg';
+
 	import {
 		bodyLen,
 		initializeSettings,
@@ -18,6 +21,8 @@
 		authorsToInclude,
 		authorsToExclude,
 		excludeUpvotedBy,
+		excludeApps,
+		excludeTitle,
 		showPayoutWindowOnly,
 		saveSettings,
 		getSettings,
@@ -52,6 +57,8 @@
 			author: get(authorsToInclude).join(', '),
 			authorExclude: get(authorsToExclude).join(', '),
 			excludeUpvotedBy: get(excludeUpvotedBy),
+			excludeApps: get(excludeApps),
+			excludeTitle: get(excludeTitle),
 			page: currentPage,
 			pageSize,
 			showPayoutWindowOnly: get(showPayoutWindowOnly)
@@ -161,6 +168,16 @@
 			return pendingPayout.toFixed(2);
 		}
 	}
+
+	function countImages(jsonMetadata: string): number {
+        try {
+            const metadata = JSON.parse(jsonMetadata);
+            return Array.isArray(metadata.image) ? metadata.image.length : 0;
+        } catch (error) {
+            console.error('Error parsing json_metadata:', error);
+            return 0;
+        }
+    }
 </script>
 
 {#if loading}
@@ -197,7 +214,16 @@
 							>{post.author} ({post.reputation})</a
 						>
 						<br />
-						<span class="text-xs">Body length: {post.body_length} characters</span>
+						<div class="flex gap-4 my-2">
+							<div class="flex gap-2">
+								<img src={WordIcon} width="14" alt="words count">
+								<span>{post.body_length}</span>
+							</div>
+							<div class="flex gap-2"> 
+								<img src={ImageIcon} width="14" alt="images count">
+								<span>{countImages(post.json_metadata)}</span>
+							</div>
+						</div>
 					</div>
 					<div class="flex flex-col items-end">
 						<span class="text-xs">{timeAgo(post.created)}</span>

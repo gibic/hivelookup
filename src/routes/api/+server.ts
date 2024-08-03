@@ -3,19 +3,21 @@ import type { RequestHandler } from '@sveltejs/kit';
 import sql from 'mssql';
 
 interface RequestBody {
-    page?: number;
-    pageSize?: number;
-    language?: string;
-    searchTerm?: string;
-    bodyLen?: number;
-    tagsToExclude?: string[];
-    minPayout?: number;
-    maxPayout?: number;
-    showPayoutWindowOnly?: boolean;
-    author?: string;
-    authorExclude?: string;
-    tags?: string[];
-    excludeUpvotedBy?: string[];
+	page?: number;
+	pageSize?: number;
+	language?: string;
+	searchTerm?: string;
+	bodyLen?: number;
+	tagsToExclude?: string[];
+	minPayout?: number;
+	maxPayout?: number;
+	showPayoutWindowOnly?: boolean;
+	author?: string;
+	authorExclude?: string;
+	tags?: string[];
+	excludeUpvotedBy?: string[];
+	excludeApps?: string[];
+	excludeTitle?: string[];
 }
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -24,19 +26,25 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const body: RequestBody = await request.json();
 
-        const page = body.page ?? 1;
-        const pageSize = body.pageSize ?? 10;
-        const language = body.language ?? 'en';
-        let searchTerm = body.searchTerm ?? '';
-        const minBodyLength = body.bodyLen ?? 0;
-        const tagsToExclude = body.tagsToExclude ?? [];
-        const minPayout = body.minPayout ?? 0;
-        const maxPayout = body.maxPayout ?? 0;
-        const showPayoutWindowOnly = body.showPayoutWindowOnly ?? true;
-        const author = body.author ?? '';
-        const authorExclude = body.authorExclude ?? '';
-        const tags = body.tags ?? [];
-        const excludeUpvotedBy = body.excludeUpvotedBy ?? [];
+		let searchTerm = body.searchTerm ?? '';
+
+		const {
+			page = 1,
+			pageSize = 10,
+			language = 'en',
+			bodyLen: minBodyLength = 0,
+			tagsToExclude = [],
+			minPayout = 0,
+			maxPayout = 0,
+			showPayoutWindowOnly = true,
+			author = '',
+			authorExclude = '',
+			tags = [],
+			excludeUpvotedBy = [],
+			excludeApps = [],
+			excludeTitle = []
+		} = body;
+
 		const sqlRequest = new sql.Request();
 
 		sqlRequest.input('language', sql.NVarChar, language);
@@ -56,58 +64,69 @@ export const POST: RequestHandler = async ({ request }) => {
 				: `AND (CONTAINS(c.body, @searchTerm) OR CONTAINS(c.title, @searchTerm))`
 			: '';
 
-        const authorNames = author.split(',').map(name => name.trim()).filter(name => name !== '');
-        const authorExcludeNames = authorExclude.split(',').map(name => name.trim()).filter(name => name !== '');
+		const authorNames = author
+			.split(',')
+			.map((name) => name.trim())
+			.filter((name) => name !== '');
+		const authorExcludeNames = authorExclude
+			.split(',')
+			.map((name) => name.trim())
+			.filter((name) => name !== '');
 
-        const authorCondition = authorNames.length > 0
-        ? `AND c.author IN (${authorNames.map((_, i) => `@author${i}`).join(', ')})`
-        : '';
+		const authorCondition =
+			authorNames.length > 0
+				? `AND c.author IN (${authorNames.map((_, i) => `@author${i}`).join(', ')})`
+				: '';
 
-        const excludeUpvotedByCondition = excludeUpvotedBy.length > 0
-        ? `AND NOT EXISTS (
+		const excludeUpvotedByCondition =
+			excludeUpvotedBy.length > 0
+				? `AND NOT EXISTS (
               SELECT 1
               FROM OPENJSON(c.active_votes) WITH (voter nvarchar(255) '$.voter')
               WHERE voter IN (${excludeUpvotedBy.map((_, i) => `@excludeUpvotedBy${i}`).join(', ')})
           )`
-        : '';
+				: '';
 
-        const authorExcludeCondition = authorExcludeNames.length > 0
-        ? `AND NOT c.author IN (${authorExcludeNames.map((_, i) => `@authorExclude${i}`).join(', ')})`
-        : '';
+		const authorExcludeCondition =
+			authorExcludeNames.length > 0
+				? `AND NOT c.author IN (${authorExcludeNames.map((_, i) => `@authorExclude${i}`).join(', ')})`
+				: '';
 
-        excludeUpvotedBy.forEach((username, i) => {
-            sqlRequest.input(`excludeUpvotedBy${i}`, sql.NVarChar, username);
-        });
+		excludeUpvotedBy.forEach((username, i) => {
+			sqlRequest.input(`excludeUpvotedBy${i}`, sql.NVarChar, username);
+		});
 
-        authorNames.forEach((name, i) => {
-            sqlRequest.input(`author${i}`, sql.NVarChar, name);
-        });
+		authorNames.forEach((name, i) => {
+			sqlRequest.input(`author${i}`, sql.NVarChar, name);
+		});
 
-        authorExcludeNames.forEach((name, i) => {
-            sqlRequest.input(`authorExclude${i}`, sql.NVarChar, name);
-        });
+		authorExcludeNames.forEach((name, i) => {
+			sqlRequest.input(`authorExclude${i}`, sql.NVarChar, name);
+		});
 
 		const bodyLengthCondition = minBodyLength > 0 ? `AND LEN(c.body) >= @bodyLength` : '';
-        const payoutWindowCondition = showPayoutWindowOnly ? `AND c.created > DATEADD(day, -7, GETUTCDATE())` : '';
-        const payoutCondition =
-            maxPayout > 0
-                ? `AND TRY_CONVERT(DECIMAL, c.pending_payout_value, 1) BETWEEN @minPayout AND @maxPayout`
-                : `AND TRY_CONVERT(DECIMAL, c.pending_payout_value, 1) >= @minPayout`;
+		const payoutWindowCondition =
+			showPayoutWindowOnly || !searchTerm ? `AND c.created > DATEADD(day, -7, GETUTCDATE())` : '';
 
-                let tagsCondition = '';
-                if (tags.length > 0) {
-                    const tagPlaceholders = tags.map((_, i) => `@includeTag${i}`).join(', ');
-                    tags.forEach((tag, i) => {
-                        sqlRequest.input(`includeTag${i}`, sql.NVarChar, tag);
-                    });
-                    tagsCondition = `AND EXISTS (
+		const payoutCondition =
+			maxPayout > 0
+				? `AND TRY_CONVERT(DECIMAL, c.pending_payout_value, 1) BETWEEN @minPayout AND @maxPayout`
+				: `AND TRY_CONVERT(DECIMAL, c.pending_payout_value, 1) >= @minPayout`;
+
+		let tagsCondition = '';
+		if (tags.length > 0) {
+			const tagPlaceholders = tags.map((_, i) => `@includeTag${i}`).join(', ');
+			tags.forEach((tag, i) => {
+				sqlRequest.input(`includeTag${i}`, sql.NVarChar, tag);
+			});
+			tagsCondition = `AND EXISTS (
                         SELECT 1
                         FROM OPENJSON(c.json_metadata, '$."tags"')
                         WHERE value IN (${tagPlaceholders})
                     )`;
-                }
-        
-        if (maxPayout > 0) {
+		}
+
+		if (maxPayout > 0) {
 			sqlRequest.input('maxPayout', sql.Decimal(18, 3), maxPayout);
 		}
 
@@ -132,19 +151,46 @@ export const POST: RequestHandler = async ({ request }) => {
 			sqlRequest.input(`excludeTag${i}`, sql.NVarChar, tag);
 		});
 
+		const excludeAppPlaceholders = excludeApps.map((_, i) => `@excludeApps${i}`).join(', ');
+
+		const excludeAppsCondition =
+			excludeApps.length > 0
+				? `AND NOT EXISTS (
+        SELECT 1 
+        FROM OPENJSON(c.json_metadata, '$."apps"') 
+        WHERE LOWER(value) IN (${excludeAppPlaceholders})
+    )`
+				: '';
+
+		excludeApps.forEach((app, i) => {
+			sqlRequest.input(`excludeApps${i}`, sql.NVarChar, app);
+		});
+
+		let excludeTitleCondition = '';
+		if (excludeTitle.length > 0) {
+			excludeTitleCondition = excludeTitle
+				.map((_, i) => `LOWER(c.title) NOT LIKE @excludeTitle${i}`)
+				.join(' AND ');
+
+			excludeTitle.forEach((title, i) => {
+				sqlRequest.input(`excludeTitle${i}`, sql.NVarChar, `%${title.toLowerCase()}%`);
+			});
+
+			excludeTitleCondition = `AND (${excludeTitleCondition})`;
+		}
 		const offset = (page - 1) * pageSize;
 
 		// Query for total count
 		const totalCountQuery = `
         SELECT COUNT(*) AS totalCount
         FROM Comments c
-        WHERE c.depth = 0 
+        WHERE c.depth = 0
         AND c.allow_curation_rewards = 1 
         AND ISJSON(c.json_metadata) = 1
         ${searchTermCondition}
         ${bodyLengthCondition}
-        ${authorCondition}
         ${authorExcludeCondition}
+        ${authorCondition}
         ${tagsCondition}
         ${excludeUpvotedByCondition}
         AND EXISTS (
@@ -159,12 +205,14 @@ export const POST: RequestHandler = async ({ request }) => {
         ${excludeTagsCondition}
         ${payoutWindowCondition}
         ${payoutCondition}
+        ${excludeAppsCondition}
+        ${excludeTitleCondition}
     `;
 
 		const totalCountResult = await sqlRequest.query(totalCountQuery);
 		const totalCount = totalCountResult.recordset[0].totalCount;
 
-        const query = ` 
+		const query = ` 
     SELECT 
         c.title,
         FLOOR(a.reputation_ui) AS reputation,
@@ -208,6 +256,8 @@ export const POST: RequestHandler = async ({ request }) => {
         ${excludeTagsCondition}
         ${payoutWindowCondition}
         ${payoutCondition}
+        ${excludeAppsCondition}
+        ${excludeTitleCondition}
     ORDER BY 
         c.created DESC
     OFFSET @offset ROWS

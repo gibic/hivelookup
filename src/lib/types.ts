@@ -48,6 +48,8 @@ export interface FetchDataOptions {
     author?: string;    
     authorExclude?: string;   
     excludeUpvotedBy?: string[];
+    excludeApps?: string[];
+    excludeTitle?: string[];
     showPayoutWindowOnly: boolean;
     page: number;
     pageSize: number;

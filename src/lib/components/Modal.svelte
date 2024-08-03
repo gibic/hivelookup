@@ -10,6 +10,9 @@
 		authorsToInclude,
 		authorsToExclude,
 		excludeUpvotedBy,
+		excludeApps,
+		excludeTitle,
+		searchTriggered,
 	} from '$lib/utils/storageUtils';
 	import closeIcon from '$lib/assets/circle-xmark-regular.svg';
 	import { get } from 'svelte/store';
@@ -22,6 +25,8 @@
     let includeAuthorsString = get(authorsToInclude)?.join(', ') || '';
     let excludeAuthorsString = get(authorsToExclude)?.join(', ') || '';
     let excludeUpvotedByString = get(excludeUpvotedBy)?.join(', ') || '';
+	let excludedAppsString = get(excludeApps)?.join(', ') || '';
+	let excludeTitleString = get(excludeTitle)?.join(', ') || '';
 
 	let showToast = false;
 
@@ -59,11 +64,15 @@
 			tagsToExclude: get(tagsToExclude) || [],
             authorsToInclude: get(authorsToInclude) || [],
             authorsToExclude: get(authorsToExclude) || [],
-            excludeUpvotedBy: get(excludeUpvotedBy) || []
+            excludeUpvotedBy: get(excludeUpvotedBy) || [],
+			excludeApps: get(excludeApps) || [],
+			excludeTitle: get(excludeTitle) || [],
 		});
 
 		showToast = true;
+		searchTriggered.set(true);
 		setTimeout(() => (showToast = false), 3000);
+
 	}
 </script>
 
@@ -107,6 +116,28 @@
 					on:input={(event) => handleInputChange(event, maxPayout.set)}
 					class="border py-1 px-2 mb-1 text-neutral-800"
 					placeholder="10"
+				/>
+			</div>
+			<div class="flex flex-col">
+				<label for="exclude-tags">Exclude Apps</label>
+				<input
+					id="exclude-apps"
+					type="text"
+					bind:value={excludedAppsString}
+                    on:input={(event) => handleListInputChange(event, excludeApps)}
+					class="border py-1 px-2 mb-1 text-neutral-800"
+					placeholder="app1, app2, app3"
+				/>
+			</div>
+			<div class="flex flex-col">
+				<label for="exclude-tags">Not in title</label>
+				<input
+					id="exclude-title"
+					type="text"
+					bind:value={excludeTitleString}
+                    on:input={(event) => handleListInputChange(event, excludeTitle)}
+					class="border py-1 px-2 mb-1 text-neutral-800"
+					placeholder="word 1, word 2, word 3"
 				/>
 			</div>
 			<div class="flex flex-col">

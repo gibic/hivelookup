@@ -14,6 +14,8 @@ type AppSettings = {
 	authorsToInclude: string[];
 	authorsToExclude: string[];
 	excludeUpvotedBy: string[];
+	excludeApps: string[];
+	excludeTitle: string[];
 	// Add other parameters as needed
 };
 
@@ -32,6 +34,8 @@ export const authorsToInclude = writable<string[]>([]);
 export const authorsToExclude = writable<string[]>([]);
 export const excludeUpvotedBy = writable<string[]>([]);
 export const searchTriggered = writable<boolean>(false);
+export const excludeApps = writable<string[]>([]);
+export const excludeTitle = writable<string[]>([]);
 
 const storeMap: {
 	[K in keyof AppSettings]:
@@ -45,7 +49,9 @@ const storeMap: {
 		| typeof showPayoutWindowOnly
 		| typeof authorsToInclude
 		| typeof authorsToExclude
-		| typeof excludeUpvotedBy;
+		| typeof excludeUpvotedBy
+		| typeof excludeApps
+		| typeof excludeTitle;
 } = {
 	selectedLanguage,
 	selectedUI,
@@ -57,7 +63,9 @@ const storeMap: {
 	showPayoutWindowOnly,
 	authorsToInclude,
 	authorsToExclude,
-	excludeUpvotedBy
+	excludeUpvotedBy,
+	excludeApps,
+	excludeTitle,
 };
 
 function setStoreValues(settings: Partial<AppSettings>) {
@@ -98,6 +106,8 @@ export function resetSettings() {
 		showPayoutWindowOnly: true,
 		authorsToInclude: [],
 		authorsToExclude: [],
-		excludeUpvotedBy: []
+		excludeUpvotedBy: [],
+		excludeApps: [],
+		excludeTitle: [],
 	});
 }

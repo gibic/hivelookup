@@ -18,8 +18,8 @@ interface RequestBody {
 	excludeUpvotedBy?: string[];
 	excludeApps?: string[];
 	excludeTitle?: string[];
-	minReputation?: number;
-	maxReputation?: number;
+	minReputation?: number | null;
+	maxReputation?: number | null;
 }
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -39,7 +39,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			minPayout = 0,
 			maxPayout = 0,
 			minReputation = 25,
-			maxReputation = 0,
+			maxReputation = null,
 			showPayoutWindowOnly = true,
 			author = '',
 			authorExclude = '',
@@ -47,7 +47,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			excludeUpvotedBy = [],
 			excludeApps = [],
 			excludeTitle = []
-		} = body;
+		} = body ?? {};
 
 		const sqlRequest = new sql.Request();
 
@@ -186,17 +186,16 @@ export const POST: RequestHandler = async ({ request }) => {
 			excludeTitleCondition = `AND (${excludeTitleCondition})`;
 		}
 
-		const reputationCondition = `
+		let reputationCondition = `
             ${minReputation ? `AND a.reputation_ui >= @minReputation` : ''}
-            ${maxReputation ? `AND a.reputation_ui <= @maxReputation` : ''}
         `;
 
-		sqlRequest.input('minReputation', sql.Int, minReputation || 25);
+		sqlRequest.input('minReputation', sql.Int, minReputation ?? 25);
 
-		if (maxReputation > 0) {
+		if (maxReputation !== null && maxReputation !== undefined) {
 			sqlRequest.input('maxReputation', sql.Int, maxReputation);
+			reputationCondition += `AND a.reputation_ui <= @maxReputation`;
 		}
-
 		const offset = (page - 1) * pageSize;
 
 		// Query for total count

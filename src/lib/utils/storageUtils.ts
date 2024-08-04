@@ -16,6 +16,8 @@ type AppSettings = {
 	excludeUpvotedBy: string[];
 	excludeApps: string[];
 	excludeTitle: string[];
+	minReputation: number;
+	maxReputation: number;
 	// Add other parameters as needed
 };
 
@@ -36,6 +38,8 @@ export const excludeUpvotedBy = writable<string[]>([]);
 export const searchTriggered = writable<boolean>(false);
 export const excludeApps = writable<string[]>([]);
 export const excludeTitle = writable<string[]>([]);
+export const maxReputation = writable<number>(undefined);
+export const minReputation = writable<number>(undefined);
 
 const storeMap: {
 	[K in keyof AppSettings]:
@@ -51,7 +55,10 @@ const storeMap: {
 		| typeof authorsToExclude
 		| typeof excludeUpvotedBy
 		| typeof excludeApps
-		| typeof excludeTitle;
+		| typeof excludeTitle
+		| typeof minReputation
+		| typeof maxReputation;
+
 } = {
 	selectedLanguage,
 	selectedUI,
@@ -66,6 +73,8 @@ const storeMap: {
 	excludeUpvotedBy,
 	excludeApps,
 	excludeTitle,
+	minReputation,
+	maxReputation,
 };
 
 function setStoreValues(settings: Partial<AppSettings>) {
@@ -109,5 +118,7 @@ export function resetSettings() {
 		excludeUpvotedBy: [],
 		excludeApps: [],
 		excludeTitle: [],
+		minReputation: undefined,
+		maxReputation: undefined,
 	});
 }

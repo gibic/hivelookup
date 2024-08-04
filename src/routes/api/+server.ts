@@ -18,6 +18,8 @@ interface RequestBody {
 	excludeUpvotedBy?: string[];
 	excludeApps?: string[];
 	excludeTitle?: string[];
+	minReputation?: number;
+	maxReputation?: number;
 }
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -36,6 +38,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			tagsToExclude = [],
 			minPayout = 0,
 			maxPayout = 0,
+			minReputation = 25,
+			maxReputation,
 			showPayoutWindowOnly = true,
 			author = '',
 			authorExclude = '',
@@ -105,8 +109,11 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 
 		const bodyLengthCondition = minBodyLength > 0 ? `AND LEN(c.body) >= @bodyLength` : '';
-		const payoutWindowCondition =
-			showPayoutWindowOnly || !searchTerm ? `AND c.created > DATEADD(day, -7, GETUTCDATE())` : '';
+		const payoutWindowCondition = author
+			? ''
+			: showPayoutWindowOnly || !searchTerm
+				? `AND c.created > DATEADD(day, -2, GETUTCDATE())`
+				: '';
 
 		const payoutCondition =
 			maxPayout > 0
@@ -178,14 +185,28 @@ export const POST: RequestHandler = async ({ request }) => {
 
 			excludeTitleCondition = `AND (${excludeTitleCondition})`;
 		}
+
+		const reputationCondition = `
+            ${minReputation ? `AND a.reputation_ui >= @minReputation` : ''}
+            ${maxReputation !== undefined ? `AND a.reputation_ui <= @maxReputation` : ''}
+        `;
+
+		sqlRequest.input('minReputation', sql.Int, minReputation || 25);
+
+		if (maxReputation !== undefined) {
+			sqlRequest.input('maxReputation', sql.Int, maxReputation);
+		}
+
 		const offset = (page - 1) * pageSize;
 
 		// Query for total count
 		const totalCountQuery = `
         SELECT COUNT(*) AS totalCount
         FROM Comments c
+        LEFT JOIN
+        Accounts a ON c.author = a.name
         WHERE c.depth = 0
-        AND c.allow_curation_rewards = 1 
+        AND c.allow_curation_rewards = 1
         AND ISJSON(c.json_metadata) = 1
         ${searchTermCondition}
         ${bodyLengthCondition}
@@ -207,6 +228,7 @@ export const POST: RequestHandler = async ({ request }) => {
         ${payoutCondition}
         ${excludeAppsCondition}
         ${excludeTitleCondition}
+        ${reputationCondition}
     `;
 
 		const totalCountResult = await sqlRequest.query(totalCountQuery);
@@ -215,7 +237,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		const query = ` 
     SELECT 
         c.title,
-        FLOOR(a.reputation_ui) AS reputation,
+        COALESCE(FLOOR(a.reputation_ui), 0) AS reputation,
         c.author,
         c.url,
         c.created,
@@ -233,7 +255,7 @@ export const POST: RequestHandler = async ({ request }) => {
         Comments c
     LEFT JOIN 
         Communities cm ON c.category = cm.name
-    JOIN 
+    LEFT JOIN
         Accounts a ON c.author = a.name
     WHERE 
         c.depth = 0
@@ -259,6 +281,7 @@ export const POST: RequestHandler = async ({ request }) => {
         ${payoutCondition}
         ${excludeAppsCondition}
         ${excludeTitleCondition}
+        ${reputationCondition}
     ORDER BY 
         c.created DESC
     OFFSET @offset ROWS

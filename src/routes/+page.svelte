@@ -24,6 +24,8 @@
 		excludeApps,
 		excludeTitle,
 		showPayoutWindowOnly,
+		minReputation,
+		maxReputation,
 		saveSettings,
 		getSettings,
 		searchTriggered
@@ -59,6 +61,8 @@
 			excludeUpvotedBy: get(excludeUpvotedBy),
 			excludeApps: get(excludeApps),
 			excludeTitle: get(excludeTitle),
+			minReputation: get(minReputation),
+			maxReputation: get(maxReputation),
 			page: currentPage,
 			pageSize,
 			showPayoutWindowOnly: get(showPayoutWindowOnly)

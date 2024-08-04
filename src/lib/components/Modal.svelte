@@ -13,6 +13,8 @@
 		excludeApps,
 		excludeTitle,
 		searchTriggered,
+		minReputation,
+		maxReputation,
 	} from '$lib/utils/storageUtils';
 	import closeIcon from '$lib/assets/circle-xmark-regular.svg';
 	import { get } from 'svelte/store';
@@ -27,6 +29,8 @@
     let excludeUpvotedByString = get(excludeUpvotedBy)?.join(', ') || '';
 	let excludedAppsString = get(excludeApps)?.join(', ') || '';
 	let excludeTitleString = get(excludeTitle)?.join(', ') || '';
+	let minReputationValue = get(minReputation) || 0;
+	let maxReputationValue = get(maxReputation) || 0;
 
 	let showToast = false;
 
@@ -67,6 +71,8 @@
             excludeUpvotedBy: get(excludeUpvotedBy) || [],
 			excludeApps: get(excludeApps) || [],
 			excludeTitle: get(excludeTitle) || [],
+			minReputation: get(minReputation),
+			maxReputation: get(maxReputation),
 		});
 
 		showToast = true;
@@ -85,105 +91,137 @@
 			</button>
 		</header>
 		<section class="grid grid-cols-4 gap-6">
-			<div class="flex flex-col">
-				<label for="minimum-chars">Minimum body length (characters)</label>
-				<input
-					id="minimum-chars"
-					type="number"
-					bind:value={bodyLengthValue}
-					on:input={(event) => handleInputChange(event, bodyLen.set)}
-					class="border py-1 px-2 mb-1 text-neutral-800"
-					placeholder="1000"
-				/>
+			<div class="flex flex-col gap-2">
+				<div class="flex flex-col">
+					<label for="minimum-chars">Minimum body length (characters)</label>
+					<input
+						id="minimum-chars"
+						type="number"
+						bind:value={bodyLengthValue}
+						on:input={(event) => handleInputChange(event, bodyLen.set)}
+						class="border py-1 px-2 mb-1 text-neutral-800"
+						placeholder="1000"
+					/>
+				</div>
+				<div class="flex gap-4">
+					<div class="flex flex-col w-1/3">
+						<label for="minrewards">Min Rewards</label>
+						<input
+							id="minrewards"
+							type="number"
+							bind:value={minPayoutValue}
+							on:input={(event) => handleInputChange(event, minPayout.set)}
+							class="border py-1 px-2 mb-1 text-neutral-800"
+							placeholder="0"
+						/>
+					</div>
+					<div class="flex flex-col w-1/3">
+						<label for="maxrewards">Max Rewards</label>
+						<input
+							id="maxrewards"
+							type="number"
+							bind:value={maxPayoutValue}
+							on:input={(event) => handleInputChange(event, maxPayout.set)}
+							class="border py-1 px-2 mb-1 text-neutral-800"
+							placeholder="10"
+						/>
+					</div>
+				</div>
+				<div class="flex flex-col">
+					<label for="exclude-tags">Not in title</label>
+					<input
+						id="exclude-title"
+						type="text"
+						bind:value={excludeTitleString}
+						on:input={(event) => handleListInputChange(event, excludeTitle)}
+						class="border py-1 px-2 mb-1 text-neutral-800"
+						placeholder="word 1, word 2, word 3"
+					/>
+				</div>
 			</div>
-			<div class="flex flex-col">
-				<label for="minrewards">Min Rewards</label>
-				<input
-					id="minrewards"
-					type="number"
-					bind:value={minPayoutValue}
-					on:input={(event) => handleInputChange(event, minPayout.set)}
-					class="border py-1 px-2 mb-1 text-neutral-800"
-					placeholder="0"
-				/>
+			<div class="flex flex-col gap-2">
+				<div class="flex gap-4">
+					<div class="flex flex-col w-[45%]">
+						<label for="minrep">Min Reputation</label>
+						<input
+							id="minrep"
+							type="number"
+							bind:value={minReputationValue}
+							on:input={(event) => handleInputChange(event, minReputation.set)}
+							class="border py-1 px-2 mb-1 text-neutral-800"
+							placeholder="25"
+						/>
+					</div>
+					<div class="flex flex-col w-[45%]">
+						<label for="maxrep">Max Reputation</label>
+						<input
+							id="maxrep"
+							type="number"
+							bind:value={maxReputationValue}
+							on:input={(event) => handleInputChange(event, maxReputation.set)}
+							class="border py-1 px-2 mb-1 text-neutral-800"
+							placeholder="50"
+						/>
+					</div>
+				</div>
+				<div class="flex flex-col">
+					<label for="include-authors">Include Authors (comma-separated)</label>
+					<input
+						id="include-authors"
+						type="text"
+						bind:value={includeAuthorsString}
+						on:input={(event) => handleListInputChange(event, authorsToInclude, '@')}
+						class="border py-1 px-2 mb-1 text-neutral-800"
+						placeholder="author1, author2, author3"
+					/>
+				</div>
+				<div class="flex flex-col">
+					<label for="include-tags">Include Tags</label>
+					<input
+						id="include-tags"
+						type="text"
+						bind:value={includeTagsString}
+						on:input={(event) => handleListInputChange(event, tagsToInclude)}
+						class="border py-1 px-2 mb-1 text-neutral-800"
+						placeholder="tag1, tag2, tag3"
+					/>
+				</div>
 			</div>
-			<div class="flex flex-col">
-				<label for="maxrewards">Max Rewards</label>
-				<input
-					id="maxrewards"
-					type="number"
-					bind:value={maxPayoutValue}
-					on:input={(event) => handleInputChange(event, maxPayout.set)}
-					class="border py-1 px-2 mb-1 text-neutral-800"
-					placeholder="10"
-				/>
+			<div class="flex flex-col gap-2">
+				<div class="flex flex-col">
+					<label for="exclude-tags">Exclude Apps</label>
+					<input
+						id="exclude-apps"
+						type="text"
+						bind:value={excludedAppsString}
+						on:input={(event) => handleListInputChange(event, excludeApps)}
+						class="border py-1 px-2 mb-1 text-neutral-800"
+						placeholder="app1, app2, app3"
+					/>
+				</div>
+				<div class="flex flex-col">
+					<label for="exclude-authors">Exclude Authors (comma-separated)</label>
+					<input
+						id="exclude-authors"
+						type="text"
+						bind:value={excludeAuthorsString}
+						on:input={(event) => handleListInputChange(event, authorsToExclude, '@')}
+						class="border py-1 px-2 mb-1 text-neutral-800"
+						placeholder="author1, author2, author3"
+					/>
+				</div>
+				<div class="flex flex-col">
+					<label for="exclude-tags">Exclude Tags</label>
+					<input
+						id="exclude-tags"
+						type="text"
+						bind:value={excludedTagsString}
+						on:input={(event) => handleListInputChange(event, tagsToExclude)}
+						class="border py-1 px-2 mb-1 text-neutral-800"
+						placeholder="tag1, tag2, tag3"
+					/>
+				</div>
 			</div>
-			<div class="flex flex-col">
-				<label for="exclude-tags">Exclude Apps</label>
-				<input
-					id="exclude-apps"
-					type="text"
-					bind:value={excludedAppsString}
-                    on:input={(event) => handleListInputChange(event, excludeApps)}
-					class="border py-1 px-2 mb-1 text-neutral-800"
-					placeholder="app1, app2, app3"
-				/>
-			</div>
-			<div class="flex flex-col">
-				<label for="exclude-tags">Not in title</label>
-				<input
-					id="exclude-title"
-					type="text"
-					bind:value={excludeTitleString}
-                    on:input={(event) => handleListInputChange(event, excludeTitle)}
-					class="border py-1 px-2 mb-1 text-neutral-800"
-					placeholder="word 1, word 2, word 3"
-				/>
-			</div>
-			<div class="flex flex-col">
-				<label for="exclude-tags">Exclude Tags</label>
-				<input
-					id="exclude-tags"
-					type="text"
-					bind:value={excludedTagsString}
-                    on:input={(event) => handleListInputChange(event, tagsToExclude)}
-					class="border py-1 px-2 mb-1 text-neutral-800"
-					placeholder="tag1, tag2, tag3"
-				/>
-			</div>
-            <div class="flex flex-col">
-				<label for="include-tags">Include Tags</label>
-				<input
-					id="include-tags"
-					type="text"
-					bind:value={includeTagsString}
-                    on:input={(event) => handleListInputChange(event, tagsToInclude)}
-					class="border py-1 px-2 mb-1 text-neutral-800"
-					placeholder="tag1, tag2, tag3"
-				/>
-			</div>
-            <div class="flex flex-col">
-                <label for="include-authors">Include Authors (comma-separated)</label>
-                <input
-                    id="include-authors"
-                    type="text"
-                    bind:value={includeAuthorsString}
-                    on:input={(event) => handleListInputChange(event, authorsToInclude, '@')}
-                    class="border py-1 px-2 mb-1 text-neutral-800"
-                    placeholder="author1, author2, author3"
-                />
-            </div>
-            <div class="flex flex-col">
-                <label for="exclude-authors">Exclude Authors (comma-separated)</label>
-                <input
-                    id="exclude-authors"
-                    type="text"
-                    bind:value={excludeAuthorsString}
-                    on:input={(event) => handleListInputChange(event, authorsToExclude, '@')}
-                    class="border py-1 px-2 mb-1 text-neutral-800"
-                    placeholder="author1, author2, author3"
-                />
-            </div>
             <div class="flex flex-col">
                 <label for="exclude-upvoted-by">Exclude Upvoted By (comma-separated)</label>
                 <input

@@ -39,7 +39,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			minPayout = 0,
 			maxPayout = 0,
 			minReputation = 25,
-			maxReputation,
+			maxReputation = 0,
 			showPayoutWindowOnly = true,
 			author = '',
 			authorExclude = '',
@@ -188,12 +188,12 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const reputationCondition = `
             ${minReputation ? `AND a.reputation_ui >= @minReputation` : ''}
-            ${maxReputation !== undefined ? `AND a.reputation_ui <= @maxReputation` : ''}
+            ${maxReputation ? `AND a.reputation_ui <= @maxReputation` : ''}
         `;
 
 		sqlRequest.input('minReputation', sql.Int, minReputation || 25);
 
-		if (maxReputation !== undefined) {
+		if (maxReputation > 0) {
 			sqlRequest.input('maxReputation', sql.Int, maxReputation);
 		}
 

@@ -99,8 +99,10 @@
 			posts = [];
 			totalCount = 0;
 		} finally {
-			setTimeout(() => (loading = false), 1000);
-		}
+            setTimeout(() => {
+                loading = false;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 1000);		}
 	}
 
 	function processPosts(responseData: Post[]) {

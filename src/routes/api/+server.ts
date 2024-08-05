@@ -62,7 +62,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				? `"${body.searchTerm.replace(/"/g, '""')}"`
 				: body.searchTerm.replace(/"/g, '""');
 			sqlRequest.input('searchTerm', sql.NVarChar, searchTerm);
-			searchTermCondition = `AND CONTAINS((c.body, c.title), @searchTerm)`;
+			searchTermCondition = `AND (CONTAINS(c.body, @searchTerm) OR CONTAINS(c.title, @searchTerm))`;
 		}
 
 		const authorCondition = buildCondition('c.author', author, sqlRequest, 'author');

@@ -65,7 +65,7 @@
 		};
 	}
 
-	async function fetchData(params: FetchDataOptions) {
+	async function fetchData(params: FetchDataOptions, isPagination = false) {
 		loading = true;
 		try {
 			const res = await fetch('/api', {
@@ -80,6 +80,9 @@
 				const responseData: APIResponse = await res.json();
 				if (Array.isArray(responseData.posts)) {
 					processPosts(responseData.posts);
+					if (!isPagination) {
+						currentPage = 1; // Reset to the first page on new search
+					}
 				} else {
 					console.error('Unexpected response structure:', responseData);
 					posts = [];
@@ -106,7 +109,6 @@
 			wordCount: countWords(post.body)
 		}));
 	}
-
 	onMount(() => {
 		initializeSettings();
 		const initialSettings = getSettings();
@@ -202,13 +204,13 @@
 		<div class="sticky top-16 bg-neutral-950 pb-4 mb-2 border-b border-neutral-800">
 			<h2 class="font-semibold mb-5 sticky top-16 bg-neutral-950">
 				{#if posts.length > pageSize}
-					{Math.min(pageSize * currentPage, posts.length)} of {posts.length} results
+					{Math.min(currentPage * pageSize, posts.length)} of {posts.length} results
 				{:else if posts.length > 0}
 					{posts.length} results
 				{:else}
 					No result
 				{/if}
-				</h2>
+			</h2>
 			<div class="flex justify-center gap-6 text-sm items-center">
 				<button
 					on:click={previousPage}
@@ -240,11 +242,11 @@
 						<br />
 						<div class="flex gap-4 my-2">
 							<div class="flex gap-2">
-								<img src={WordIcon} width="14" alt="words count">
+								<img src={WordIcon} width="14" alt="words count" />
 								<span>{post.wordCount}</span>
 							</div>
 							<div class="flex gap-2">
-								<img src={ImageIcon} width="14" alt="images count">
+								<img src={ImageIcon} width="14" alt="images count" />
 								<span>{countImages(post.json_metadata)}</span>
 							</div>
 						</div>
@@ -253,7 +255,7 @@
 						<span class="text-xs">{timeAgo(post.created)}</span>
 						{#if !post.displaycategory.startsWith('#')}
 							<span class="bg-teal-700 rounded-md my-2 py-1 px-2 text-[11px]"
-									>C / {post.displaycategory}</span
+								>C / {post.displaycategory}</span
 							>
 						{/if}
 					</div>
@@ -264,7 +266,7 @@
 				<div class="mt-2 flex justify-between">
 					{#if getTags(post).length}
 						<ul class="flex flex-wrap mt-2">
-							 {#each getTags(post) as tag}
+							{#each getTags(post) as tag}
 								<li class="bg-gray-700 border-gray-600 p-1 mr-2 mb-1 text-xs rounded-md">#{tag}</li>
 							{/each}
 						</ul>

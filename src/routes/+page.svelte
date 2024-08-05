@@ -65,7 +65,7 @@
 		};
 	}
 
-	async function fetchData(params: FetchDataOptions, isPagination = false) {
+	async function fetchData(params: FetchDataOptions) {
 		loading = true;
 		try {
 			const res = await fetch('/api', {
@@ -188,11 +188,11 @@
 		return strippedContent.trim().split(/\s+/).length;
 	}
 
-	$: paginatedPosts = () => {
+	$: paginatedPosts = (() => {
 		const start = (currentPage - 1) * pageSize;
-		const end = start + pageSize;
+		const end = Math.min(start + pageSize, posts.length);
 		return posts.slice(start, end);
-	};
+	})();
 </script>
 
 {#if loading}
@@ -201,8 +201,14 @@
 	<ul class="mb-4 w-full">
 		<div class="sticky top-16 bg-neutral-950 pb-4 mb-2 border-b border-neutral-800">
 			<h2 class="font-semibold mb-5 sticky top-16 bg-neutral-950">
-				{pageSize} of {posts.length} results
-			</h2>
+				{#if posts.length > pageSize}
+					{Math.min(pageSize * currentPage, posts.length)} of {posts.length} results
+				{:else if posts.length > 0}
+					{posts.length} results
+				{:else}
+					No result
+				{/if}
+				</h2>
 			<div class="flex justify-center gap-6 text-sm items-center">
 				<button
 					on:click={previousPage}
@@ -224,7 +230,7 @@
 			</div>
 		</div>
 
-		{#each paginatedPosts() as post}
+		{#each paginatedPosts as post}
 			<li class="border-b border-neutral-900 py-2 hover:bg-neutral-900 pr-4">
 				<div class="flex justify-between mb-2">
 					<div class="text-sm">
@@ -247,7 +253,7 @@
 						<span class="text-xs">{timeAgo(post.created)}</span>
 						{#if !post.displaycategory.startsWith('#')}
 							<span class="bg-teal-700 rounded-md my-2 py-1 px-2 text-[11px]"
-								>C / {post.displaycategory}</span
+									>C / {post.displaycategory}</span
 							>
 						{/if}
 					</div>

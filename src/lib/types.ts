@@ -55,6 +55,4 @@ export interface FetchDataOptions {
     minReputation?: number;
     maxReputation?: number;
     showPayoutWindowOnly: boolean;
-    page: number;
-    pageSize: number;
 }

@@ -33,11 +33,9 @@
 	import { get } from 'svelte/store';
 
 	interface APIResponse {
-		totalCount: number;
 		posts: Post[];
 	}
 
-	let totalCount = 0;
 	let posts: (Post & { metadata: Metadata })[] = [];
 	let loading = true;
 	let initialLoadDone = false;
@@ -63,17 +61,12 @@
 			excludeTitle: get(excludeTitle),
 			minReputation: get(minReputation),
 			maxReputation: get(maxReputation),
-			page: currentPage,
-			pageSize,
 			showPayoutWindowOnly: get(showPayoutWindowOnly)
 		};
 	}
 
 	async function fetchData(params: FetchDataOptions, isPagination = false) {
 		loading = true;
-		if (!isPagination) {
-			currentPage = 1;
-		}
 		try {
 			const res = await fetch('/api', {
 				method: 'POST',
@@ -87,26 +80,23 @@
 				const responseData: APIResponse = await res.json();
 				if (Array.isArray(responseData.posts)) {
 					processPosts(responseData.posts);
-					totalCount = responseData.totalCount;
 				} else {
 					console.error('Unexpected response structure:', responseData);
 					posts = [];
-					totalCount = 0;
 				}
 			} else {
 				console.error('Failed to fetch data with status:', res.status);
 				posts = [];
-				totalCount = 0;
 			}
 		} catch (error) {
 			console.error('Error fetching data:', error);
 			posts = [];
-			totalCount = 0;
 		} finally {
-            setTimeout(() => {
-                loading = false;
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }, 1000);		}
+			setTimeout(() => {
+				loading = false;
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+			}, 1000);
+		}
 	}
 
 	function processPosts(responseData: Post[]) {
@@ -152,7 +142,6 @@
 
 	function changePage(increment: number) {
 		currentPage = Math.max(1, currentPage + increment);
-		fetchData(getFetchDataParams(), true);
 	}
 
 	function nextPage() {
@@ -177,14 +166,14 @@
 	}
 
 	function countImages(jsonMetadata: string): number {
-        try {
-            const metadata = JSON.parse(jsonMetadata);
-            return Array.isArray(metadata.image) ? metadata.image.length : 0;
-        } catch (error) {
-            console.error('Error parsing json_metadata:', error);
-            return 0;
-        }
-    }
+		try {
+			const metadata = JSON.parse(jsonMetadata);
+			return Array.isArray(metadata.image) ? metadata.image.length : 0;
+		} catch (error) {
+			console.error('Error parsing json_metadata:', error);
+			return 0;
+		}
+	}
 
 	function stripHTMLAndMarkdown(content: string): string {
 		const tempDiv = document.createElement('div');
@@ -193,10 +182,17 @@
 		const strippedContent = textContent.replace(/(\*|_|\~|\`|\#|\>|\!|\[|\])/g, '');
 		return strippedContent;
 	}
+
 	function countWords(content: string): number {
 		const strippedContent = stripHTMLAndMarkdown(content);
 		return strippedContent.trim().split(/\s+/).length;
 	}
+
+	$: paginatedPosts = () => {
+		const start = (currentPage - 1) * pageSize;
+		const end = start + pageSize;
+		return posts.slice(start, end);
+	};
 </script>
 
 {#if loading}
@@ -205,27 +201,30 @@
 	<ul class="mb-4 w-full">
 		<div class="sticky top-16 bg-neutral-950 pb-4 mb-2 border-b border-neutral-800">
 			<h2 class="font-semibold mb-5 sticky top-16 bg-neutral-950">
-				Showing {posts.length} of {totalCount} results
+				{pageSize} of {posts.length} results
 			</h2>
 			<div class="flex justify-center gap-6 text-sm items-center">
 				<button
 					on:click={previousPage}
 					disabled={currentPage === 1}
 					class="py-1 px-2 w-32 {currentPage === 1 ? 'bg-gray-800 text-gray-600' : 'bg-gray-600'}"
-					>Previous</button
 				>
+					Previous
+				</button>
 				<span>Page {currentPage}</span>
 				<button
 					on:click={nextPage}
-					disabled={currentPage * pageSize >= totalCount}
-					class="bg-gray-600 py-1 px-2 w-32 {currentPage * pageSize >= totalCount
+					disabled={currentPage * pageSize >= posts.length}
+					class="bg-gray-600 py-1 px-2 w-32 {currentPage * pageSize >= posts.length
 						? 'bg-gray-800 text-gray-600'
-						: 'bg-gray-600'}">Next</button
+						: 'bg-gray-600'}"
 				>
+					Next
+				</button>
 			</div>
 		</div>
 
-		{#each posts as post}
+		{#each paginatedPosts() as post}
 			<li class="border-b border-neutral-900 py-2 hover:bg-neutral-900 pr-4">
 				<div class="flex justify-between mb-2">
 					<div class="text-sm">
@@ -238,7 +237,7 @@
 								<img src={WordIcon} width="14" alt="words count">
 								<span>{post.wordCount}</span>
 							</div>
-							<div class="flex gap-2"> 
+							<div class="flex gap-2">
 								<img src={ImageIcon} width="14" alt="images count">
 								<span>{countImages(post.json_metadata)}</span>
 							</div>
@@ -259,7 +258,7 @@
 				<div class="mt-2 flex justify-between">
 					{#if getTags(post).length}
 						<ul class="flex flex-wrap mt-2">
-							{#each getTags(post) as tag}
+							 {#each getTags(post) as tag}
 								<li class="bg-gray-700 border-gray-600 p-1 mr-2 mb-1 text-xs rounded-md">#{tag}</li>
 							{/each}
 						</ul>

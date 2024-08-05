@@ -3,8 +3,6 @@ import type { RequestHandler } from '@sveltejs/kit';
 import sql from 'mssql';
 
 interface RequestBody {
-	page?: number;
-	pageSize?: number;
 	language?: string;
 	searchTerm?: string;
 	bodyLen?: number;
@@ -31,8 +29,6 @@ export const POST: RequestHandler = async ({ request }) => {
 		let searchTerm = body.searchTerm ?? '';
 
 		const {
-			page = 1,
-			pageSize = 10,
 			language = 'en',
 			bodyLen: minBodyLength = 0,
 			tagsToExclude = [],
@@ -196,42 +192,6 @@ export const POST: RequestHandler = async ({ request }) => {
 			sqlRequest.input('maxReputation', sql.Int, maxReputation);
 			reputationCondition += `AND a.reputation_ui <= @maxReputation`;
 		}
-		const offset = (page - 1) * pageSize;
-
-		// Query for total count
-		const totalCountQuery = `
-        SELECT COUNT(*) AS totalCount
-        FROM Comments c
-        LEFT JOIN
-        Accounts a ON c.author = a.name
-        WHERE c.depth = 0
-        AND c.allow_curation_rewards = 1
-        AND ISJSON(c.json_metadata) = 1
-        ${searchTermCondition}
-        ${bodyLengthCondition}
-        ${authorExcludeCondition}
-        ${authorCondition}
-        ${tagsCondition}
-        ${excludeUpvotedByCondition}
-        AND EXISTS (
-            SELECT 1 
-            FROM OPENJSON(c.body_language)
-            WITH (
-                language NVARCHAR(50) '$.language',
-                isReliable BIT '$.isReliable'
-            ) 
-            WHERE language = @language AND isReliable = 1
-        )
-        ${excludeTagsCondition}
-        ${payoutWindowCondition}
-        ${payoutCondition}
-        ${excludeAppsCondition}
-        ${excludeTitleCondition}
-        ${reputationCondition}
-    `;
-
-		const totalCountResult = await sqlRequest.query(totalCountQuery);
-		const totalCount = totalCountResult.recordset[0].totalCount;
 
 		const query = ` 
     SELECT 
@@ -283,18 +243,14 @@ export const POST: RequestHandler = async ({ request }) => {
         ${reputationCondition}
     ORDER BY 
         c.created DESC
-    OFFSET @offset ROWS
-    FETCH NEXT @pageSize ROWS ONLY;
+    OFFSET 0 ROWS
+    FETCH NEXT 600 ROWS ONLY;
 `;
-
-		sqlRequest.input('offset', sql.Int, offset);
-		sqlRequest.input('pageSize', sql.Int, pageSize);
 
 		const result = await sqlRequest.query(query);
 
 		return new Response(
 			JSON.stringify({
-				totalCount,
 				posts: result.recordset
 			}),
 			{

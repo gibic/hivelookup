@@ -115,29 +115,35 @@ export const POST: RequestHandler = async ({ request }) => {
 			'excludeTag',
 			true
 		);
-        const excludeUpvotedByCondition = buildJsonCondition(
-            'c.active_votes',
-            'voter',
-            excludeUpvotedBy,
-            sqlRequest,
-            'excludeUpvotedBy',
-            true
-        );
-        const excludeAppsCondition = buildJsonCondition(
-            'c.json_metadata',
-            'apps',
-            excludeApps,
-            sqlRequest,
-            'excludeApps',
-            true
-        );
-		const excludeTitleCondition = buildCondition(
-			'LOWER(c.title)',
-			excludeTitle,
+		const excludeUpvotedByCondition = buildJsonCondition(
+			'c.active_votes',
+			'voter',
+			excludeUpvotedBy,
 			sqlRequest,
-			'excludeTitle',
+			'excludeUpvotedBy',
 			true
 		);
+		const excludeAppsCondition = buildJsonCondition(
+			'c.json_metadata',
+			'apps',
+			excludeApps,
+			sqlRequest,
+			'excludeApps',
+			true
+		);
+
+		let excludeTitleCondition = '';
+		if (excludeTitle.length > 0) {
+			excludeTitleCondition = excludeTitle
+				.map((_, i) => `LOWER(c.title) NOT LIKE @excludeTitle${i}`)
+				.join(' AND ');
+
+			excludeTitle.forEach((title, i) => {
+				sqlRequest.input(`excludeTitle${i}`, sql.NVarChar, `%${title.toLowerCase()}%`);
+			});
+
+			excludeTitleCondition = `AND (${excludeTitleCondition})`;
+		}
 
 		const payoutWindowCondition = showPayoutWindowOnly
 			? `AND c.created > DATEADD(day, -2, GETUTCDATE())`
@@ -199,8 +205,9 @@ export const POST: RequestHandler = async ({ request }) => {
 					${excludeAppsCondition}
 					${excludeTitleCondition}
 					${reputationCondition}
+					AND a.reputation_ui >= @minReputation
 			)
-			SELECT TOP 600 * FROM FilteredComments
+			SELECT TOP 100 * FROM FilteredComments
 			ORDER BY 
 				created DESC;
 		`;

@@ -7,7 +7,6 @@
 	import HiveIcon from '$lib/assets/hive-blockchain-hive-logo.svg';
 	import ImageIcon from '$lib/assets/image-solid.svg';
 	import WordIcon from '$lib/assets/file-word-solid.svg';
-
 	import {
 		bodyLen,
 		initializeSettings,
@@ -28,7 +27,7 @@
 		maxReputation,
 		saveSettings,
 		getSettings,
-		searchTriggered
+		searchTriggered,
 	} from '$lib/utils/storageUtils';
 	import { get } from 'svelte/store';
 
@@ -267,7 +266,9 @@
 					{#if getTags(post).length}
 						<ul class="flex flex-wrap mt-2">
 							{#each getTags(post) as tag}
-								<li class="bg-gray-700 border-gray-600 p-1 mr-2 mb-1 text-xs rounded-md">#{tag}</li>
+								<li class="bg-gray-700 border-gray-600 p-1 mr-2 mb-1 text-xs rounded-md">
+									#{tag}
+								</li>
 							{/each}
 						</ul>
 					{/if}

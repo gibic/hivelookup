@@ -20,6 +20,33 @@ interface RequestBody {
 	maxReputation?: number | null;
 }
 
+export const GET: RequestHandler = async () => {
+	try {
+		await connectToDatabase();
+		return new Response(JSON.stringify({ status: 'connected' }), {
+			status: 200,
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+	} catch (error: unknown) {
+		let errorMessage = 'An unknown error occurred';
+
+		if (error instanceof Error) {
+			errorMessage = error.message;
+		} else if (typeof error === 'string') {
+			errorMessage = error;
+		}
+
+		return new Response(JSON.stringify({ status: 'failed', error: errorMessage }), {
+			status: 500,
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+	}
+};
+
 export const POST: RequestHandler = async ({ request }) => {
 	try {
 		await connectToDatabase();
@@ -88,24 +115,22 @@ export const POST: RequestHandler = async ({ request }) => {
 			'excludeTag',
 			true
 		);
-		const excludeUpvotedByCondition = buildJsonCondition(
-			'c.active_votes',
-			'voter',
-			excludeUpvotedBy,
-			sqlRequest,
-			'excludeUpvotedBy',
-			true,
-			true
-		);
-		const excludeAppsCondition = buildJsonCondition(
-			'c.json_metadata',
-			'apps',
-			excludeApps,
-			sqlRequest,
-			'excludeApps',
-			true,
-			true
-		);
+        const excludeUpvotedByCondition = buildJsonCondition(
+            'c.active_votes',
+            'voter',
+            excludeUpvotedBy,
+            sqlRequest,
+            'excludeUpvotedBy',
+            true
+        );
+        const excludeAppsCondition = buildJsonCondition(
+            'c.json_metadata',
+            'apps',
+            excludeApps,
+            sqlRequest,
+            'excludeApps',
+            true
+        );
 		const excludeTitleCondition = buildCondition(
 			'LOWER(c.title)',
 			excludeTitle,
@@ -126,57 +151,58 @@ export const POST: RequestHandler = async ({ request }) => {
 			maxReputation !== null ? `AND a.reputation_ui <= @maxReputation` : '';
 
 		const query = `
-			SELECT 
-				c.title,
-				COALESCE(FLOOR(a.reputation_ui), 0) AS reputation,
-				c.author,
-				c.url,
-				c.created,
-				c.pending_payout_value,
-				c.json_metadata,
-				c.body_length,
-				c.author_rewards,
-				c.total_payout_value,
-				c.body,
-				CASE 
-					WHEN cm.title IS NOT NULL THEN cm.title
-					ELSE '#' + c.category
-				END AS displaycategory
-			FROM 
-				Comments c
-			LEFT JOIN 
-				Communities cm ON c.category = cm.name
-			LEFT JOIN
-				Accounts a ON c.author = a.name
-			WHERE 
-				c.depth = 0
-				AND c.allow_curation_rewards = 1 
-				AND ISJSON(c.json_metadata) = 1
-				${searchTermCondition}
-				${bodyLengthCondition}
-				${authorExcludeCondition}
-				${authorCondition}
-				${tagsCondition}
-				${excludeUpvotedByCondition}
-				AND EXISTS (
-					SELECT 1 
-					FROM OPENJSON(c.body_language)
-					WITH (
-						language NVARCHAR(50) '$.language',
-						isReliable BIT '$.isReliable'
-					) 
-					WHERE language = @language AND isReliable = 1
-				)
-				${excludeTagsCondition}
-				${payoutWindowCondition}
-				${payoutCondition}
-				${excludeAppsCondition}
-				${excludeTitleCondition}
-				${reputationCondition}
+			WITH FilteredComments AS (
+				SELECT 
+					c.title,
+					COALESCE(FLOOR(a.reputation_ui), 0) AS reputation,
+					c.author,
+					c.url,
+					c.created,
+					c.pending_payout_value,
+					c.json_metadata,
+					c.body_length,
+					c.author_rewards,
+					c.total_payout_value,
+					c.body,
+					CASE 
+						WHEN cm.title IS NOT NULL THEN cm.title
+						ELSE '#' + c.category
+					END AS displaycategory
+				FROM 
+					Comments c
+				LEFT JOIN 
+					Communities cm ON c.category = cm.name
+				LEFT JOIN
+					Accounts a ON c.author = a.name
+				WHERE 
+					c.depth = 0
+					AND c.allow_curation_rewards = 1 
+					AND ISJSON(c.json_metadata) = 1
+					${searchTermCondition}
+					${bodyLengthCondition}
+					${authorExcludeCondition}
+					${authorCondition}
+					${tagsCondition}
+					${excludeUpvotedByCondition}
+					AND EXISTS (
+						SELECT 1 
+						FROM OPENJSON(c.body_language)
+						WITH (
+							language NVARCHAR(50) '$.language',
+							isReliable BIT '$.isReliable'
+						) 
+						WHERE language = @language AND isReliable = 1
+					)
+					${excludeTagsCondition}
+					${payoutWindowCondition}
+					${payoutCondition}
+					${excludeAppsCondition}
+					${excludeTitleCondition}
+					${reputationCondition}
+			)
+			SELECT TOP 600 * FROM FilteredComments
 			ORDER BY 
-				c.created DESC
-			OFFSET 0 ROWS
-			FETCH NEXT 600 ROWS ONLY;
+				created DESC;
 		`;
 
 		const result = await sqlRequest.query(query);
@@ -208,13 +234,14 @@ function buildCondition(
 	values: string | string[],
 	sqlRequest: sql.Request,
 	paramPrefix: string,
-	exclude = false,
-	isJson = false
+	exclude = false
 ) {
 	if (!values || values.length === 0) return '';
 
 	const valueArray = Array.isArray(values)
 		? values
+				.map((value) => value.trim())
+				.filter((value) => value !== '')
 		: values
 				.split(',')
 				.map((value) => value.trim())
@@ -235,8 +262,7 @@ function buildJsonCondition(
 	values: string[],
 	sqlRequest: sql.Request,
 	paramPrefix: string,
-	exclude = false,
-	isJson = false
+	exclude = false
 ) {
 	if (!values || values.length === 0) return '';
 

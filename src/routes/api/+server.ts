@@ -49,9 +49,11 @@ export const GET: RequestHandler = async () => {
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
-		await connectToDatabase();
+		const pool = await connectToDatabase();
 
 		const body: RequestBody = await request.json();
+		const sqlRequest = pool.request();
+
 		const {
 			language = 'en',
 			bodyLen: minBodyLength = 0,
@@ -69,7 +71,6 @@ export const POST: RequestHandler = async ({ request }) => {
 			excludeTitle = []
 		} = body ?? {};
 
-		const sqlRequest = new sql.Request();
 		sqlRequest.input('language', sql.NVarChar, language);
 		sqlRequest.input('minPayout', sql.Decimal(18, 3), minPayout);
 		sqlRequest.input('bodyLength', sql.Int, minBodyLength);

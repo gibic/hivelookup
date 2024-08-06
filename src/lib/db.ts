@@ -2,6 +2,8 @@ import { config as dotenvConfig } from 'dotenv';
 import sql from 'mssql';
 
 dotenvConfig();
+let pool: sql.ConnectionPool | null = null;
+
 
 const config: sql.config = {
     user: process.env.DB_USER || 'your_username',
@@ -14,12 +16,10 @@ const config: sql.config = {
     },
 };
 
-export const connectToDatabase = async (): Promise<void> => {
-    try {
-        await sql.connect(config);
-        console.log('Connected to the database');
-    } catch (err) {
-        console.error('Database connection failed: ', err);
-        throw err;
+export const connectToDatabase = async (): Promise<sql.ConnectionPool> => {
+    if (!pool) {
+      pool = await sql.connect(config);
+      console.log('Database connected');
     }
+    return pool;
 };

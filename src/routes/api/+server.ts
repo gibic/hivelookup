@@ -243,26 +243,23 @@ function buildCondition(
 	sqlRequest: sql.Request,
 	paramPrefix: string,
 	exclude = false
-) {
+  ) {
 	if (!values || values.length === 0) return '';
-
+  
 	const valueArray = Array.isArray(values)
-		? values
-				.map((value) => value.trim())
-				.filter((value) => value !== '')
-		: values
-				.split(',')
-				.map((value) => value.trim())
-				.filter((value) => value !== '');
+	  ? values.map((value) => value.trim()).filter((value) => value !== '')
+	  : values.split(',').map((value) => value.trim()).filter((value) => value !== '');
 	if (valueArray.length === 0) return '';
-
-	const condition = valueArray.map((_, i) => `@${paramPrefix}${i}`).join(', ');
+  
+	const condition = valueArray
+	  .map((_, i) => `${column} ${exclude ? 'NOT LIKE' : 'LIKE'} @${paramPrefix}${i}`)
+	  .join(' AND ');
 	valueArray.forEach((value, i) => {
-		sqlRequest.input(`${paramPrefix}${i}`, sql.NVarChar, value);
+	  sqlRequest.input(`${paramPrefix}${i}`, sql.NVarChar, value);
 	});
-
-	return exclude ? `AND ${column} NOT IN (${condition})` : `AND ${column} IN (${condition})`;
-}
+  
+	return `AND (${condition})`;
+  }
 
 function buildJsonCondition(
 	column: string,
